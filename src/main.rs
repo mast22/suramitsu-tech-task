@@ -10,19 +10,19 @@ use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 
 use crate::node::Node;
 
-/// Possible requests that we could receive
+/// Request schema for already connected nodes
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
-enum IncomingRequest {
+enum LinkedSchema {
     Connection { address: String },
     // We cannot get a port of node that sends a request, on the other node due to TCP restrictions
     // So, let's instead send an ip address together with port to identify ourselves
     Message { message: String, author: String },
 }
 
-/// Node receives a list of nodes of the network
+/// Response for
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct ResponseConnection {
+struct ConnectionResponse {
     connected_nodes: Vec<String>,
 }
 
@@ -47,7 +47,7 @@ async fn send_periodic_requests(args: Args, node: web::Data<Node>) {
 
         for ip in connected_nodes.clone() {
             let client = client.clone();
-            let payload = IncomingRequest::Message {
+            let payload = LinkedSchema::Message {
                 message: message.clone(),
                 author: format!("127.0.0.1:{}", args.port),
             };
@@ -67,18 +67,18 @@ async fn send_periodic_requests(args: Args, node: web::Data<Node>) {
 
 #[post("/")]
 async fn index(req: String, node: web::Data<Node>) -> impl Responder {
-    let request_payload: IncomingRequest = match serde_json::from_str(&req) {
+    let request_payload: LinkedSchema = match serde_json::from_str(&req) {
         Ok(payload) => payload,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
     return match request_payload {
-        IncomingRequest::Connection { address } => {
+        LinkedSchema::Connection { address } => {
             let response = &node.process_connection(address).await;
 
             HttpResponse::Ok().json(response)
         }
-        IncomingRequest::Message { message, author } => {
+        LinkedSchema::Message { message, author } => {
             node.process_message(message, author).await;
 
             HttpResponse::Ok().finish()
