@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::{Args, ConnectionResponse, LinkedSchema};
+use crate::{Args, ConnectionResponse, Schema};
 
 #[derive(Debug)]
 pub struct Node {
@@ -39,7 +39,7 @@ impl Node {
         };
 
         // Send request to connect, to the first node
-        let request_payload = LinkedSchema::Connection {
+        let request_payload = Schema::Connection {
             address: format!("127.0.0.1:{}", self.args.port),
         };
 
